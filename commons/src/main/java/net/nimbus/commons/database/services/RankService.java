@@ -1,104 +1,85 @@
 package net.nimbus.commons.database.services;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import net.nimbus.commons.Commons;
-import net.nimbus.commons.database.OfflineService;
-import net.nimbus.commons.database.query.Result;
+import net.nimbus.commons.database.AbstractRepository;
 import net.nimbus.commons.database.query.Row;
 import net.nimbus.commons.entities.Permission;
 import net.nimbus.commons.entities.Rank;
+import net.nimbus.commons.util.FutureCallbackAdapter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class RankService extends OfflineService<String, Rank> {
+public class RankService extends AbstractRepository<String, Rank> {
 
     public void loadRanks() {
-        getAll(ranks -> {
-            ranks.forEach(rank -> {
-                List<Permission> permissions = getPermissions(rank.getRankName());
-                rank.setPermissions(permissions);
-                updateCache(rank.getRankName(), rank);
-            });
+        ListenableFuture<List<Rank>> listenableFuture = queryListAsynchronously("SELECT * FROM `ranks` ORDER BY tabweight DESC");
 
-            List<Rank> updatedRanks = getCache().getAll();
-            updatedRanks.forEach(rank -> {
-                List<String> rankNames = getInheritances(rank.getRankName());
-                List<Rank> inheritanceRanks = rankNames.stream().map(name -> get(name).get()).collect(Collectors.toList());
+        Futures.addCallback(listenableFuture, new FutureCallbackAdapter<>(ranks -> {
+            for (Rank rank : ranks) {
+                List<String> inheritedRankNames = getInheritedRanks(rank.getId());
+                List<Rank> inheritanceRanks = inheritedRankNames.stream().filter(name -> get(name).isPresent()).map(name -> get(name).get()).collect(Collectors.toList());
                 rank.setInheritances(inheritanceRanks);
-                updateCache(rank.getRankName(), rank);
-            });
-        });
+
+                Commons.getInstance().getPermissionService().queryList("SELECT * FROM permissions WHERE rank_name = ?", rank.getId());
+
+                updateCache(rank.getId(), rank);
+            }
+        }), Commons.getInstance().getExecutorService());
+
     }
 
-    public void getAll(Consumer<List<Rank>> consumer) {
-        Commons.getInstance().getExecutorService().execute(() -> {
-            String query = "SELECT * FROM ranks";
-            Result result = sqlQuery(query);
-            consumer.accept(result.getRows().stream().map(row -> Commons.getInstance().getRankService().buildRank(row)).collect(Collectors.toList()));
-        });
-    }
-
-    @Override
-    public Optional<Rank> query(String query, Object... parameters) {
-        Result rs = sqlQuery(query, parameters);
-        return Optional.ofNullable(buildRank(rs.getFirstRow()));
-    }
-
-    public Rank buildRank(Row row) {
-        if (row == null) return null;
+    public Rank buildEntity(Row row) {
         return Rank.builder()
                 .hexColor(row.getString("hexcolor"))
-                .rankName(row.getString("rank_name"))
+                .id(row.getString("rank_name"))
                 .prefix(row.getString("prefix"))
                 .tabWeight(row.getInteger("tabweight"))
                 .build();
     }
 
-    public Permission buildPermission(Row row) {
-        return Permission.builder()
-                .id(row.getLong("id"))
-                .permission(row.getString("permission"))
-                .rankName(row.getString("rank_name"))
-                .build();
-    }
 
-    public List<String> getInheritances(String rankName) {
-        List<Rank> ranks = sqlQuery("SELECT * FROM ranks").getRows().stream().map(this::buildRank).collect(Collectors.toList());
-        List<Rank> inheritances = new ArrayList<>();
+    public List<String> getInheritedRanks(String rankName) {
+        List<String> ranksToCheck = new ArrayList<>(Collections.singleton(rankName));
+        List<String> inheritedRanks = new ArrayList<>();
 
-        List<String> permissions = getPermissions(rankName).stream().map(Permission::getPermission).collect(Collectors.toList());
-        List<String> inheritanceRankNames = permissions.stream()
-                .filter(perm -> perm.contains("inheritance."))
-                .map(perm -> perm.replace("inheritance.", ""))
-                .collect(Collectors.toList());
+        for (int i = 0; i < 100; i++) {
+            for (String checkRank : ranksToCheck) {
+                if (ranksToCheck.isEmpty()) return inheritedRanks;
 
-        List<String> allRankNames = ranks.stream().map(Rank::getRankName).collect(Collectors.toList());
+                List<String> permissions = getPermissions(checkRank).stream().map(Permission::getPermission).collect(Collectors.toList());
 
-        for (String rank : allRankNames) {
-            if (!inheritanceRankNames.contains(rank)) continue;
-            inheritances.add(ranks.stream().filter(r -> r.getRankName().equals(rank)).findFirst().orElse(null));
+                List<String> inheritedRankNames = permissions.stream().
+                        filter(perm -> perm.contains("inheritance."))
+                        .map(perm -> perm.replace("inheritance.", ""))
+                        .collect(Collectors.toList());
+
+                inheritedRanks.addAll(inheritedRankNames);
+                ranksToCheck = inheritedRankNames;
+            }
         }
-
-        return inheritances.stream().map(Rank::getRankName).collect(Collectors.toList());
+        return inheritedRanks;
     }
 
     public List<Permission> getPermissions(String rankName) {
-        Result result = sqlQuery("SELECT * FROM permissions WHERE rank_name = ?", rankName);
-        return result.getRows().stream().map(this::buildPermission).collect(Collectors.toList());
+        return Commons.getInstance().getPermissionService().queryList("SELECT * FROM permissions WHERE rank_name = ?", rankName);
     }
 
     @Override
     public Long insertInternal(Rank r) {
         String sql = "INSERT INTO ranks(rank_name, hexcolor, prefix, tabweight) VALUES (?,?,?,?)";
-        Object[] objects = {r.getRankName(), r.getHexColor(), r.getPrefix(), r.getTabWeight()};
+        Object[] objects = {r.getId(), r.getHexColor(), r.getPrefix(), r.getTabWeight()};
         return sqlWrite(sql, objects);
     }
 
     @Override
     public void update(Rank object) {
-
+        /*
+        EMPTY, WE DON'T NEED TO UPDATE PERMISSIONS
+         */
     }
 }

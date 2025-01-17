@@ -2,16 +2,12 @@ package net.nimbus.commons.entities;
 
 
 import lombok.*;
-import net.nimbus.commons.database.LongIdentifierEntity;
+import lombok.experimental.SuperBuilder;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString
-public class Permission implements LongIdentifierEntity {
-
-    private Long id;
+public class Permission extends Entity<Long> {
 
     private String permission;
 

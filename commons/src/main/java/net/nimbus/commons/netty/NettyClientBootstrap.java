@@ -7,11 +7,9 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import lombok.extern.slf4j.Slf4j;
 import net.nimbus.commons.netty.handler.ClientChannelHandler;
 import net.nimbus.commons.netty.packet.Packet;
 
-@Slf4j
 public class NettyClientBootstrap implements Runnable {
 
     private final ClientChannelHandler channelHandler;
@@ -43,7 +41,7 @@ public class NettyClientBootstrap implements Runnable {
                     .option(ChannelOption.SO_KEEPALIVE, true);
                 bootstrap.connect("188.245.226.131", 8888).channel().closeFuture().addListener(f -> {
 
-                log.error("Netty lost connection. Trying to reconnect...");
+                    System.out.println("Netty lost connection. Trying to reconnect...");
                 Thread.sleep(5000L);
                 Netty.startClient();
             }).sync();

@@ -11,7 +11,8 @@ target/
 *.iws
 *.iml
 *.ipr
-
+/commons/src/main/resources/liquibase.properties
+/commons/src/main/resources/config.properties
 ### Eclipse ###
 .apt_generated
 .classpath

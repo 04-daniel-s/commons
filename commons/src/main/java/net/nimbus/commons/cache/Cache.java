@@ -36,4 +36,8 @@ public class Cache<K, T> {
     public List<T> getAll() {
         return new ArrayList<>(map.values());
     }
+
+    public void clear() {
+        map.clear();
+    }
 }

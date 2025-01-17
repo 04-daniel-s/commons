@@ -1,7 +1,7 @@
 package net.nimbus.commons.entities;
 
 import lombok.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.experimental.SuperBuilder;
 import net.nimbus.commons.Commons;
 import net.nimbus.commons.ban.PenaltyStatus;
 import net.nimbus.commons.ban.PenaltyType;
@@ -9,18 +9,12 @@ import net.nimbus.commons.rank.RankStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@SuperBuilder
 @ToString
-@Slf4j
-public class NimbusPlayer {
-
-    @NotNull
-    private String uuid;
+public class NimbusPlayer extends Entity<String> {
 
     private String password;
 
@@ -39,31 +33,33 @@ public class NimbusPlayer {
 
     private Date lastOnline; //TODO service etc.
 
+    private String currentRankName;
+
     public Rank getActiveRank() {
+
         if (getActiveRankUpdate() != null) {
-            log.info("Active Rank update found for {}", name);
             Optional<Rank> optional = Commons.getInstance().getRankService().get(getActiveRankUpdate().getRankName());
-            if(optional.isPresent()) {
+            if (optional.isPresent()) {
                 return optional.get();
             }
         }
 
-        log.info("Active Rank update not found for {}", name);
         Optional<Rank> optionalRank = Commons.getInstance().getRankService().get("default");
         return optionalRank.orElse(null);
     }
 
-    public List<Profile> getProfiles() {
-        return Commons.getInstance().getProfileService().filterCache(profile -> profile.getUuid().equals(uuid));
-    }
-
     public List<PenaltyUpdate> getPenaltyUpdates() {
-        return Commons.getInstance().getPenaltyUpdateService().filterCache(update -> update.getPlayerUUID().equals(uuid));
+        return Commons.getInstance().getPenaltyUpdateService().filterCache(update -> update.getPlayerUUID().equals(getId()));
     }
 
     public List<RankUpdate> getRankUpdates() {
-        List<RankUpdate> updates = Commons.getInstance().getRankUpdateService().filterCache(update -> update.getPlayerUUID().equals(uuid));
+        List<RankUpdate> updates = Commons.getInstance().getRankUpdateService().filterCache(update -> update.getPlayerUUID().equals(getId()));
         return updates;
+    }
+
+    public Optional<RankUpdate> getRankUpdate(Long rankUpdateId) {
+        Predicate<RankUpdate> predicate = rankUpdate -> rankUpdate.getPlayerUUID().equals(getId()) && rankUpdate.getId().equals(rankUpdateId);
+        return Commons.getInstance().getRankUpdateService().filterCache(predicate).stream().findFirst();
     }
 
     public boolean hasPermission(String permission) {
@@ -79,16 +75,13 @@ public class NimbusPlayer {
     }
 
     public RankUpdate getActiveRankUpdate() {
-        log.info("active rank update: {}",getRankUpdates().stream().filter(v -> v.getTimestamp().getTime() == v.getExpireDate().getTime() || v.getExpireDate().getTime() - System.currentTimeMillis() > 0).collect(Collectors.toList()));
-        log.info("active rank update size: {}",getRankUpdates().stream().filter(v -> v.getTimestamp().getTime() == v.getExpireDate().getTime() || v.getExpireDate().getTime() - System.currentTimeMillis() > 0).collect(Collectors.toList()).size());
+        if (getRankUpdates().isEmpty()) return null;
 
-        return getRankUpdates().stream()
+        RankUpdate rankUpdate = getRankUpdates().stream()
                 .filter(v -> v.getRankStatus() == RankStatus.UPDATED)
-                .filter(v -> v.getTimestamp().getTime() == v.getExpireDate().getTime() || v.getExpireDate().getTime() - System.currentTimeMillis() > 0)
+                .filter(v -> v.getExpireDate().after(new Date()))
                 .min(Comparator.comparingInt(a -> Commons.getInstance().getRankService().get(a.getRankName()).get().getTabWeight())).orElse(null);
-    }
 
-    public Profile getActiveProfile() {
-        return getProfiles().stream().filter(Profile::isActive).findFirst().orElse(null);
+        return rankUpdate;
     }
 }

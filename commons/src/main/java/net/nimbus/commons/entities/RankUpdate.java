@@ -1,19 +1,15 @@
 package net.nimbus.commons.entities;
 
 import lombok.*;
-import net.nimbus.commons.database.LongIdentifierEntity;
+import lombok.experimental.SuperBuilder;
 import net.nimbus.commons.rank.RankStatus;
 
 import java.util.Date;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@SuperBuilder
 @ToString
-public class RankUpdate implements LongIdentifierEntity {
-
-    private Long id;
+public class RankUpdate extends Entity<Long> {
 
     private String playerUUID;
 

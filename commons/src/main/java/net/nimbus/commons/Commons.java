@@ -1,24 +1,25 @@
 package net.nimbus.commons;
 
-import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.nimbus.commons.database.services.*;
+import net.nimbus.commons.netty.Netty;
+import net.nimbus.commons.netty.listener.ReloadRanksListener;
+import net.nimbus.commons.netty.packet.packets.StringPacket;
+import org.flywaydb.core.Flyway;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 
-@Getter
 @Slf4j
+@Getter
 public class Commons {
 
     private final ListeningExecutorService executorService;
@@ -27,21 +28,11 @@ public class Commons {
 
     private final NimbusPlayerService nimbusPlayerService;
 
-    private final ProfileService profileService;
-
     private final PenaltyUpdateService penaltyUpdateService;
 
     private final RankUpdateService rankUpdateService;
 
-    private final IslandFlagService islandFlagService;
-
-    private final IslandLimitService islandLimitService;
-
-    private final IslandMemberService islandMemberService;
-
-    private final IslandBannedPlayerService islandBannedPlayerService;
-
-    private final IslandService islandService;
+    private final PermissionService permissionService;
 
     private Connection connection = null;
 
@@ -51,27 +42,29 @@ public class Commons {
         executorService = MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
 
         rankService = new RankService();
+        permissionService = new PermissionService();
         nimbusPlayerService = new NimbusPlayerService();
-        profileService = new ProfileService();
         penaltyUpdateService = new PenaltyUpdateService();
         rankUpdateService = new RankUpdateService();
-        islandFlagService = new IslandFlagService();
-        islandLimitService = new IslandLimitService();
-        islandBannedPlayerService = new IslandBannedPlayerService();
-        islandMemberService = new IslandMemberService();
-        islandService = new IslandService();
     }
 
     public void init() {
+        Netty.registerListener(new ReloadRanksListener(), StringPacket.class);
+
         try {
             String username = getProperty("db.username");
             String password = getProperty("db.password");
             String host = getProperty("db.host");
             connection = DriverManager.getConnection(host, username, password);
+            Flyway flyway = Flyway.configure().dataSource(host, username, password).load();
+            flyway.baseline();
+            flyway.migrate();
+
             log.info("Successfully connected to database");
         } catch (SQLException e) {
-            log.error("Could not connect to database!", e);
+            log.warn("Could not connect to database! " + e);
         }
+
         rankService.loadRanks();
     }
 
@@ -92,4 +85,5 @@ public class Commons {
         if (instance == null) instance = new Commons();
         return instance;
     }
+
 }

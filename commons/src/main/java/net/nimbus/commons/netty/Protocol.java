@@ -2,7 +2,6 @@ package net.nimbus.commons.netty;
 
 import com.google.common.reflect.ClassPath;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 import net.nimbus.commons.netty.packet.Packet;
 
 import java.io.IOException;
@@ -10,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 @UtilityClass
-@Slf4j
 public class Protocol {
 
     private static final Map<Integer, Class<? extends Packet>> packets = new HashMap<>();
@@ -20,7 +18,7 @@ public class Protocol {
             ClassPath.from(Protocol.class.getClassLoader())
                     .getTopLevelClasses("net.nimbus.commons.netty.packet.packets")
                     .forEach(v -> packets.put(v.getSimpleName().hashCode(), (Class<? extends Packet>) v.load()));
-            log.info("Loaded " + packets.size() + " packet types.");
+            System.out.println("Loaded " + packets.size() + " packet types.");
         } catch (IOException e) {
             e.printStackTrace();
         }
