@@ -1,6 +1,7 @@
 package net.nimbus.commons.database;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import lombok.extern.slf4j.Slf4j;
 import net.nimbus.commons.Commons;
 import net.nimbus.commons.cache.Cache;
 import net.nimbus.commons.database.query.Result;
@@ -8,13 +9,13 @@ import net.nimbus.commons.database.query.Row;
 import net.nimbus.commons.entities.Entity;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 public abstract class AbstractRepository<K, T extends Entity<K>> extends AbstractCacheManager<K, T> {
 
     public AbstractRepository() {
@@ -40,6 +41,10 @@ public abstract class AbstractRepository<K, T extends Entity<K>> extends Abstrac
 
     public Optional<T> query(String query, Object... parameters) {
         Result result = sqlQuery(query, parameters);
+
+        if(result.isEmpty()) {
+            return Optional.empty();
+        }
 
         Optional<T> optional = Optional.ofNullable(buildEntity(result.getFirstRow()));
         optional.ifPresent(update -> updateCache(optional.get().getId(), optional.get()));
@@ -124,14 +129,10 @@ public abstract class AbstractRepository<K, T extends Entity<K>> extends Abstrac
      * @param object Should only be used with entities of identification type Long (LongIdentifierEntity)
      */
     public void createNew(T object) {
-        if(!(object.getId() instanceof Long)) return;
-        
-        Commons.getInstance().getExecutorService().execute(() -> {
-            Long key = insertInternal(object);
-            object.setId((K) key);
-            updateCache((K) key, object);
-            System.out.println("successfully created and cached: id: " + key + " object: " + object);
-        });
+        Long key = insertInternal(object);
+        object.setId((K) key);
+        updateCache((K) key, object);
+        log.info("successfully created and cached: id: " + key + " object: " + object);
     }
 
     public void persistAll() {
@@ -139,5 +140,5 @@ public abstract class AbstractRepository<K, T extends Entity<K>> extends Abstrac
             update(entity);
         }
     }
-    
+
 }

@@ -13,9 +13,11 @@ import java.util.stream.Collectors;
 @ToString
 public class Rank extends Entity<String> {
 
-    private String prefix;
+    private String color;
 
-    private String hexColor;
+    private String tabPrefix;
+
+    private String chatPrefix;
 
     private int tabWeight;
 
@@ -33,7 +35,7 @@ public class Rank extends Entity<String> {
         List<String> allPermissions = getPermissions().stream().map(Permission::getPermission).collect(Collectors.toList());
 
         for (Rank inheritance : inheritances) {
-            allPermissions.addAll(inheritance.getPermissions().stream().map(Permission::getPermission).collect(Collectors.toList()));
+            allPermissions.addAll(inheritance.getPermissions().stream().map(Permission::getPermission).toList());
         }
 
         return allPermissions;

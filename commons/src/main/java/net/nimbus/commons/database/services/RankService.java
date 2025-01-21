@@ -35,9 +35,10 @@ public class RankService extends AbstractRepository<String, Rank> {
 
     public Rank buildEntity(Row row) {
         return Rank.builder()
-                .hexColor(row.getString("hexcolor"))
+                .color(row.getString("color"))
                 .id(row.getString("rank_name"))
-                .prefix(row.getString("prefix"))
+                .tabPrefix(row.getString("tab_prefix"))
+                .chatPrefix(row.getString("chat_prefix"))
                 .tabWeight(row.getInteger("tabweight"))
                 .build();
     }
@@ -71,8 +72,8 @@ public class RankService extends AbstractRepository<String, Rank> {
 
     @Override
     public Long insertInternal(Rank r) {
-        String sql = "INSERT INTO ranks(rank_name, hexcolor, prefix, tabweight) VALUES (?,?,?,?)";
-        Object[] objects = {r.getId(), r.getHexColor(), r.getPrefix(), r.getTabWeight()};
+        String sql = "INSERT INTO ranks(rank_name, color, tab_prefix, chat_prefix, tabweight) VALUES (?,?,?,?,?)";
+        Object[] objects = {r.getId(), r.getColor(), r.getTabPrefix(), r.getChatPrefix(),r.getTabWeight()};
         return sqlWrite(sql, objects);
     }
 
