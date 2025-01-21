@@ -1,6 +1,8 @@
 package net.nimbus.commons.entities;
 
-import lombok.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import net.nimbus.commons.Commons;
 import net.nimbus.commons.ban.PenaltyStatus;
@@ -8,9 +10,13 @@ import net.nimbus.commons.ban.PenaltyType;
 import net.nimbus.commons.rank.RankStatus;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @SuperBuilder
 @ToString

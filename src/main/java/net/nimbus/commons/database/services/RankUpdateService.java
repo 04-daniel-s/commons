@@ -6,7 +6,9 @@ import net.nimbus.commons.database.query.Row;
 import net.nimbus.commons.entities.RankUpdate;
 import net.nimbus.commons.rank.RankStatus;
 
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.OptionalInt;
 
 public class RankUpdateService extends AbstractRepository<Long, RankUpdate> {
 

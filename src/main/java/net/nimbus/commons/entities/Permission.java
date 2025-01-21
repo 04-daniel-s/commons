@@ -1,7 +1,8 @@
 package net.nimbus.commons.entities;
 
 
-import lombok.*;
+import lombok.Data;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 @Data

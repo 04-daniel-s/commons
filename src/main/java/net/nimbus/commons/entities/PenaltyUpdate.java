@@ -1,6 +1,7 @@
 package net.nimbus.commons.entities;
 
-import lombok.*;
+import lombok.Data;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import net.nimbus.commons.ban.PenaltyReason;
 import net.nimbus.commons.ban.PenaltyStatus;
