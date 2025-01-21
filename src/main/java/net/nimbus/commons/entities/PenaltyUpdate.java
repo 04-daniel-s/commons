@@ -1,6 +1,7 @@
 package net.nimbus.commons.entities;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import net.nimbus.commons.ban.PenaltyReason;
@@ -9,6 +10,7 @@ import net.nimbus.commons.ban.PenaltyType;
 
 import java.util.Date;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @SuperBuilder
 @ToString
